@@ -1,0 +1,13 @@
+( ;; don't forget your parentheses
+
+gasprice
+coinbase ;; this is a comment
+push10 deadbeef
+add
+or
+blockhash
+push1 ff
+return
+stop
+
+)

@@ -105,7 +105,7 @@
     (create . f0) ;; create new account with associated code
     (call . f1)   ;; message call into an account
     (callcode . f2) ;; message call into account with alt acct's code
-    (ret . f3) ;; halt exec returning output data (note name change)
+    (return . f3) ;; halt exec returning output data (note name change)
     (delegatecall . f4) ;;
     (invalid . fe) ;; invalid inst
     (selfdestruct . ff) ;; halt execution and register acct for deletion
@@ -115,8 +115,8 @@
 (defun push-p (symb)
   (when (symbolp symb)
     (let ((name (symbol-name symb)))
-      (> (length name) 4)
-      (string= (subseq name 0 4) "PUSH"))))
+      (and (> (length name) 4)
+	   (string= (subseq name 0 4) "PUSH")))))
 
 (defun push-bytes (symb)
   (when (push-p symb)
@@ -146,6 +146,7 @@
 (defun write-bytecode-to-file (path bytecode)
   (with-open-file (s path
 		     :if-exists :overwrite
+		     :if-does-not-exist :create
 		     :direction :output
 		     :element-type '(unsigned-byte 8))
     (loop for byte in bytecode do
