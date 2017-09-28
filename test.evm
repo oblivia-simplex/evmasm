@@ -2,13 +2,14 @@
 
 gasprice
 coinbase ;; this is a comment
-push10 deadbeef
+push10 #xdeadbeef
 add
 not
 or
 blockhash
-push1 ff
-push8 feedfacecafebabe
+push1 #xff
+push8 #xfeedfacecafebabe
+push1 #.(+ 8 7)
 return
 stop
 
