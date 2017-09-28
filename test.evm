@@ -3,6 +3,7 @@
 gasprice
 coinbase ;; this is a comment
 push10 #xdeadbeef
+push32 "AAAA"
 add
 not
 or

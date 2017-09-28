@@ -5,8 +5,10 @@
 ;(setq *print-base* *read-base*)
 
 (defun word->bytes (word size)
-  (loop for i from (1- size) downto 0 collect
-		  (ldb (byte 8 (* i 8)) word)))
+  (if (stringp word)
+      (map 'list #'char-int word)
+      (loop for i from (1- size) downto 0 collect
+	   (ldb (byte 8 (* i 8)) word))))
 
 (defun opseq (lo hi prefix)
   (loop for i from 1 to (1+ (- hi lo)) collect
@@ -129,13 +131,14 @@
     (loop for tok in code do
 	 (case state
 	   ((op)
-	    (assert (not (numberp tok)))
+	    (assert (symbolp tok))
 	    (when (push-p tok)
 	      (setq state 'num)
 	      (setq spit-bytes (push-bytes tok)))
 	    (push (cdr (assoc tok *mnemonic->bytecode*)) bytes))
 	   ((num)
-	    (assert (numberp tok))
+	    (assert (or (numberp tok)
+			(stringp tok)))
 	    (setq state 'op)
 	    (mapc (lambda (x) (push x bytes))
 		  (word->bytes tok spit-bytes)))))
