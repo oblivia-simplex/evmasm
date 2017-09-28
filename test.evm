@@ -4,9 +4,11 @@ gasprice
 coinbase ;; this is a comment
 push10 deadbeef
 add
+not
 or
 blockhash
 push1 ff
+push8 feedfacecafebabe
 return
 stop
 
