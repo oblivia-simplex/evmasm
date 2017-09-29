@@ -3,7 +3,6 @@
 gasprice
 coinbase ;; this is a comment
 push10 #xdeadbeef
-push32 "Hello, World!"
 add
 not
 or

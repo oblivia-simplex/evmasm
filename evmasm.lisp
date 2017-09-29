@@ -15,6 +15,9 @@
        (cons (intern (format nil "~A~D" prefix i))
 	     (+ (1- lo) i))))
 
+(defun flip-cons (cell)
+  (cons (cdr cell) (car cell)))
+
 (defparameter *mnemonic->bytecode*
   `((stop   . #x00) ;; halts execution
     (add    . #x01) ;; addition
@@ -114,11 +117,20 @@
     (selfdestruct . #xff) ;; halt execution and register acct for deletion
     ))
 
+;(defparameter *bytecode->mnemonic*
+;  (mapcar #'flip-cons *mnemonic->bytecode*))
+
 (defun push-p (symb)
   (when (symbolp symb)
     (let ((name (symbol-name symb)))
       (and (> (length name) 4)
 	   (string= (subseq name 0 4) "PUSH")))))
+
+(defun push-byte-p (byte)
+  (<= #x60 byte #x7f))
+
+(defun push-byte-expect (byte)
+  (- byte #x5F))
 
 (defun push-bytes (symb)
   (read-from-string (subseq (symbol-name symb) 4)))
@@ -143,14 +155,51 @@
 		  (into-bytes tok spit-bytes)))))
     (reverse bytes)))
 
+(defun disassemble-bytecode (bytecode)
+  (let ((state 'op)
+	(expect-bytes 0)
+	(mnemonics)
+	(number 0))
+    (loop for byte in bytecode do
+	 (case state
+	   ((op)
+	    (when (push-byte-p byte)
+	      (setq state 'num)
+	      (setq expect-bytes (push-byte-expect byte)))
+	    (push (car (rassoc byte *mnemonic->bytecode*)) mnemonics))
+	   ((num)
+	    (setq number (logior byte (ash number 8)))
+	    (setq expect-bytes (1- expect-bytes))
+	    (when (zerop expect-bytes)
+	      (setq state 'op)
+	      (push number mnemonics)
+	      (setq number 0)))))
+    (reverse mnemonics)))
+	    
+
 (defun assemble-from-file (path)
   (with-open-file (s path :direction :input)
     (assemble (read s :eof-error nil))))
 
+(defun read-bytes (path)
+  (let ((bytes ()))
+    (with-open-file (s path
+		       :direction :input
+		       :element-type '(unsigned-byte 8))
+      (loop do
+	   (let ((byte (read-byte s nil)))
+	     (unless byte
+	       (return))
+	     (push byte bytes)))
+      (reverse bytes))))
+
+(defun disassemble-from-file (path)
+  (disassemble-bytecode (read-bytes path)))
+
 (defun write-bytecode-to-file (path bytecode &key (verbose t))
   (let ((i 0))
     (with-open-file (s path
-		       :if-exists :overwrite
+		       :if-exists :supersede
 		       :if-does-not-exist :create
 		       :direction :output
 		       :element-type '(unsigned-byte 8))
@@ -165,15 +214,45 @@
 	   (write-byte byte s)))
     (format t "~%~%#x~X bytes written to ~A~%" i path)))
 
+(defun write-mnemonics-to-file (path mnemonics &key (verbose t))
+  (with-open-file (s path
+		     :if-exists :overwrite
+		     :if-does-not-exist :create
+		     :direction :output
+		     :element-type 'base-char)
+    (format s "( ;; Disassembled by EVMASM~%~%")
+    (loop for mnemonic in mnemonics do
+	 (when verbose
+	   (format t "~A~A"
+		   (if (numberp mnemonic)
+		       (format nil "#x~X" mnemonic)
+		       mnemonic)
+		   (if (push-p mnemonic) #\Space #\Newline)))
+	 (format s "~A~A"
+		 (if (numberp mnemonic)
+		     (format nil "#x~X" mnemonic)
+		     mnemonic)
+		 (if (push-p mnemonic) #\Space #\Newline)))
+    (format s "~%~%)~%")))
+	   
 (defun main (args)
-  (let ((src (cadr args))
-	(dst (caddr args)))
-    (if (null src)
-	(format t "Usage: ~A <src> [out]~%" (car args))
-	(progn
-	  (when (null dst)
-	    (setq dst (concatenate 'string src ".out")))
-	  (write-bytecode-to-file dst (assemble-from-file src))))))
+  (let ((action 'assemble))
+    (when (member "-d" args :test #'string=)
+      (setq args (remove "-d" args :test #'string=))
+      (setq action 'disassemble))
+    
+    (let ((src (cadr args))
+	  (dst (caddr args)))
+      (if (null src)
+	  (format t "Usage: ~A <src> [out]~%" (car args))
+	  (progn
+	    (when (null dst)
+	      (setq dst (concatenate 'string src ".out")))
+	    (case action
+	      ((assemble)
+	       (write-bytecode-to-file dst (assemble-from-file src)))
+	      ((disassemble)
+	       (write-mnemonics-to-file dst (disassemble-from-file src)))))))))
 
 (defparameter *argv*
   #+sbcl
