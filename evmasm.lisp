@@ -5,8 +5,7 @@
   (if (stringp word)
       (let ((raw (subseq (map 'list #'char-int word)
 			 0 (min size (length word)))))
-	(append (loop for i from (length word) to size collect #x00)))
-	
+	(append (loop for i from (length word) to size collect #x00) raw))
       (loop for i from (1- size) downto 0 collect
 	   (ldb (byte 8 (* i 8)) word))))
 
@@ -137,12 +136,15 @@
   (unless (<= (length (symbol-name symb)) 4)
     (read-from-string (subseq (symbol-name symb) 4))))
 
+(defun how-many-bytes (x)
+  (ash (ceiling (log x 2)) -3))
+
 (defun infer-push-size (arg)
   (intern
    (format nil "PUSH~D"
-	   (min 32
-		(ceiling (/ (log arg 2) 8))))))
-
+	   (min 32 (if (stringp arg)
+		       (length arg)
+		       (how-many-bytes arg))))))
 
 ;; bit sloppy. refactor
 (defun label-pass (code)
@@ -167,7 +169,7 @@
 		 ((symbolp mnem) ;; other mnemonics
 		  (push mnem pass1)
 		  (incf byte-counter))
-		 (t (assert (numberp mnem))
+		 (t (assert (or (stringp mnem) (numberp mnem)))
 		    (push mnem pass1)))));; just to check
        ;; (format t "finished pass 1.~%lookup: ~S~%pass1: ~S~%" lookup pass1)
     ;; pass 2
