@@ -5,9 +5,10 @@ coinbase ;; this is a comment
 push10 #xdeadbeef
 add
 not
+:some_label
 or
 blockhash
-push1 #xff
+push2 :some_label
 push8 #xfeedfacecafebabe
 push4 #.(+ 8 7)
 return

@@ -135,11 +135,45 @@
 (defun push-bytes (symb)
   (read-from-string (subseq (symbol-name symb) 4)))
 
+
+;; bit sloppy. refactor
+(defun label-pass (code)
+  (let ((byte-counter 0)
+	(lookup ())
+	(pass1 ())
+	(final ()))
+    (loop for mnem in code do
+	 (cond ((keywordp mnem)
+		(if (push-p (car pass1)) ;; if we just saw a push, this is a literal
+		    (push mnem pass1)
+		    (progn
+		      (push 'JUMPDEST pass1)
+		      (push (cons mnem byte-counter) lookup)
+		      (incf byte-counter))))
+	       ((push-p mnem)
+		(push mnem pass1)
+		(incf byte-counter (push-bytes mnem))) ;; then we can skip the actual number
+	       ((symbolp mnem) ;; other mnemonics
+		(push mnem pass1)
+		(incf byte-counter))
+	       (t (assert (numberp mnem))
+		  (push mnem pass1)))) ;; just to check
+    ;; (format t "finished pass 1.~%lookup: ~S~%pass1: ~S~%" lookup pass1)
+    ;; pass 2
+    (loop for mnem in pass1 do
+	 (if (and (keywordp mnem)
+		  (assoc mnem lookup)) ;; use aif here for efficiency?
+	     (push (cdr (assoc mnem lookup)) final)
+	     (push mnem final)))
+    ;;(format t "after label passes: ~S~%" final)
+    final))
+	 
+
 (defun assemble (code)
   (let ((state 'op)
 	(spit-bytes 0)
 	(bytes ()))
-    (loop for tok in code do
+    (loop for tok in (label-pass code) do
 	 (case state
 	   ((op)
 	    (assert (symbolp tok))
@@ -151,8 +185,9 @@
 	      (pop bytes)
 	      (format t "[X] WARNING: Could not assemble token '~A'~%" tok)))
 	   ((num)
-	    (assert (or (numberp tok)
-			(stringp tok)))
+	    (unless (or (numberp tok)
+			(stringp tok))
+	      (format t ">>> ~S~%" tok))
 	    (setq state 'op)
 	    (mapc (lambda (x) (push x bytes))
 		  (into-bytes tok spit-bytes)))))
