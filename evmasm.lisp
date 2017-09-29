@@ -123,7 +123,7 @@
 (defun push-p (symb)
   (when (symbolp symb)
     (let ((name (symbol-name symb)))
-      (and (> (length name) 4)
+      (and (>= (length name) 4)
 	   (string= (subseq name 0 4) "PUSH")))))
 
 (defun push-byte-p (byte)
@@ -133,7 +133,15 @@
   (- byte #x5F))
 
 (defun push-bytes (symb)
-  (read-from-string (subseq (symbol-name symb) 4)))
+  ;; assumes symb is some sort of push
+  (unless (<= (length (symbol-name symb)) 4)
+    (read-from-string (subseq (symbol-name symb) 4))))
+
+(defun infer-push-size (arg)
+  (intern
+   (format nil "PUSH~D"
+	   (min 32
+		(ceiling (/ (log arg 2) 8))))))
 
 
 ;; bit sloppy. refactor
@@ -142,23 +150,26 @@
 	(lookup ())
 	(pass1 ())
 	(final ()))
-    (loop for mnem in code do
-	 (cond ((keywordp mnem)
-		(if (push-p (car pass1)) ;; if we just saw a push, this is a literal
-		    (push mnem pass1)
-		    (progn
-		      (push 'JUMPDEST pass1)
-		      (push (cons mnem byte-counter) lookup)
-		      (incf byte-counter))))
-	       ((push-p mnem)
-		(push mnem pass1)
-		(incf byte-counter (push-bytes mnem))) ;; then we can skip the actual number
-	       ((symbolp mnem) ;; other mnemonics
-		(push mnem pass1)
-		(incf byte-counter))
-	       (t (assert (numberp mnem))
-		  (push mnem pass1)))) ;; just to check
-    ;; (format t "finished pass 1.~%lookup: ~S~%pass1: ~S~%" lookup pass1)
+    (loop for step on code by #'cdr do
+	 (let ((mnem (car step)))
+	   (cond ((keywordp mnem)
+		  (if (push-p (car pass1)) ;; if we just saw a push, this is a literal
+		      (push mnem pass1)
+		      (progn
+			(push 'JUMPDEST pass1)
+			(push (cons mnem byte-counter) lookup)
+			(incf byte-counter))))
+		 ((push-p mnem)
+		  (unless (push-bytes mnem)
+		    (setq mnem (infer-push-size (cadr step))))
+		  (push mnem pass1)
+		  (incf byte-counter (push-bytes mnem))) ;; then we can skip the actual number
+		 ((symbolp mnem) ;; other mnemonics
+		  (push mnem pass1)
+		  (incf byte-counter))
+		 (t (assert (numberp mnem))
+		    (push mnem pass1)))));; just to check
+       ;; (format t "finished pass 1.~%lookup: ~S~%pass1: ~S~%" lookup pass1)
     ;; pass 2
     (loop for mnem in pass1 do
 	 (if (and (keywordp mnem)
