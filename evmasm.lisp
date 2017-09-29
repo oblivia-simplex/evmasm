@@ -156,9 +156,9 @@
 		       :element-type '(unsigned-byte 8))
       (loop for byte in bytecode do
 	   (when verbose
-	     (format t "~A~2X" 
+	     (format t "~A~2,'0X" 
 		     (if (zerop (mod i #x10))
-			 (format nil "~%~08X | " i)
+			 (format nil "~%~8,'0X | " i)
 			 #\Space)
 		     byte))
 	   (incf i)
