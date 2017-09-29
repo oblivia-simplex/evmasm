@@ -5,7 +5,7 @@
   (if (stringp word)
       (let ((raw (subseq (map 'list #'char-int word)
 			 0 (min size (length word)))))
-	(append (loop for i from (length word) to size collect #x00) raw))
+	(append (loop for i from (length word) to (1- size) collect #x00) raw))
       (loop for i from (1- size) downto 0 collect
 	   (ldb (byte 8 (* i 8)) word))))
 
@@ -248,8 +248,17 @@
 (defun disassemble-from-file (path)
   (disassemble-bytecode (read-bytes path)))
 
+(defun pack-bytecode-to-int (bytecode)
+  (let ((int 0))
+    (loop for byte in bytecode do
+	 (setq int (ash int 8))
+	 (setq int (logior int byte)))
+    int))
+
 (defun write-bytecode-to-file (path bytecode &key (verbose t))
-  (let ((i 0))
+  (let ((i 0)
+	(integer (pack-bytecode-to-int bytecode))
+	(hexpath (format nil "~A.hex" path)))
     (with-open-file (s path
 		       :if-exists :supersede
 		       :if-does-not-exist :create
@@ -264,7 +273,16 @@
 		     byte))
 	   (incf i)
 	   (write-byte byte s)))
-    (format t "~%~%#x~X bytes written to ~A~%" i path)))
+    (format t "~%~%#x~X bytes written to ~A~%" i path)
+    (with-open-file (s hexpath
+		       :if-exists :supersede
+		       :if-does-not-exist :create
+		       :direction :output
+		       :element-type 'base-char)
+      (format s "0x~X~%" integer))
+    (format t "Written as a single hex integer to ~A~%" hexpath)
+    (when verbose
+      (format t "~%0x~X" integer))))
 
 (defun write-mnemonics-to-file (path mnemonics &key (verbose t))
   (with-open-file (s path
