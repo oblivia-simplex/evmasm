@@ -165,10 +165,11 @@
 		  (unless (push-bytes mnem)
 		    (setq mnem (infer-push-size (cadr step))))
 		  (push mnem pass1)
-		  (incf byte-counter (push-bytes mnem))) ;; then we can skip the actual number
+		  (incf byte-counter (1+ (push-bytes mnem))))
 		 ((symbolp mnem) ;; other mnemonics
 		  (push mnem pass1)
 		  (incf byte-counter))
+		 ;; we can skip the push argument in counting bytes
 		 (t (assert (or (stringp mnem) (numberp mnem)))
 		    (push mnem pass1)))));; just to check
        ;; (format t "finished pass 1.~%lookup: ~S~%pass1: ~S~%" lookup pass1)
@@ -292,7 +293,7 @@
 	   
 (defun main (args)
   (let ((action 'assemble)
-	(dst (cdr (member "-o" args :test #'string=))))
+	(dst (cadr (member "-o" args :test #'string=))))
     (remove "-o" args :test #'string=)
     (when (member "-d" args :test #'string=)
       (setq args (remove "-d" args :test #'string=))
