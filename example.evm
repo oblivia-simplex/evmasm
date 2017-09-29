@@ -3,14 +3,14 @@
 gasprice
 coinbase ;; this is a comment
 push10 #xdeadbeef
-push32 "AAAA"
+push32 "Hello, World!"
 add
 not
 or
 blockhash
 push1 #xff
 push8 #xfeedfacecafebabe
-push1 #.(+ 8 7)
+push4 #.(+ 8 7)
 return
 stop
 

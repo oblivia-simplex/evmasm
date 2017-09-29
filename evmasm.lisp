@@ -1,12 +1,12 @@
-#! /usr/bin/sbcl --script
+#! /usr/bin/clisp
 
-;(defparameter *tmp-read-base* *read-base*)
-;(setq *read-base* #x10)
-;(setq *print-base* *read-base*)
 
-(defun word->bytes (word size)
+(defun into-bytes (word size)
   (if (stringp word)
-      (map 'list #'char-int word)
+      (let ((raw (subseq (map 'list #'char-int word)
+			 0 (min size (length word)))))
+	(append (loop for i from (length word) to size collect #x00)))
+	
       (loop for i from (1- size) downto 0 collect
 	   (ldb (byte 8 (* i 8)) word))))
 
@@ -113,7 +113,6 @@
     (invalid . #xfe) ;; invalid inst
     (selfdestruct . #xff) ;; halt execution and register acct for deletion
     ))
-    
 
 (defun push-p (symb)
   (when (symbolp symb)
@@ -141,7 +140,7 @@
 			(stringp tok)))
 	    (setq state 'op)
 	    (mapc (lambda (x) (push x bytes))
-		  (word->bytes tok spit-bytes)))))
+		  (into-bytes tok spit-bytes)))))
     (reverse bytes)))
 
 (defun assemble-from-file (path)
@@ -156,23 +155,25 @@
 		       :direction :output
 		       :element-type '(unsigned-byte 8))
       (loop for byte in bytecode do
-	   (incf i)
 	   (when verbose
-	     (format t "~2X~A" byte
-		     (if (zerop (mod i #x10)) #\Newline #\Space)))
+	     (format t "~A~2X" 
+		     (if (zerop (mod i #x10))
+			 (format nil "~%~08X | " i)
+			 #\Space)
+		     byte))
+	   (incf i)
 	   (write-byte byte s)))
-    (format t "~%#x~X bytes written to ~A~%" i path)))
+    (format t "~%~%#x~X bytes written to ~A~%" i path)))
 
 (defun main (args)
   (let ((src (cadr args))
 	(dst (caddr args)))
-    (cond ((= (length args) 2)
-	   (setq dst (concatenate 'string src ".out")))
-	  ((< (length args) 2)
-	   (format t "Usage: ~A <src> [out]~%" (car args))
-	   (quit)))
-    (write-bytecode-to-file dst (assemble-from-file src))))
-
+    (if (null src)
+	(format t "Usage: ~A <src> [out]~%" (car args))
+	(progn
+	  (when (null dst)
+	    (setq dst (concatenate 'string src ".out")))
+	  (write-bytecode-to-file dst (assemble-from-file src))))))
 
 (defparameter *argv*
   #+sbcl
@@ -184,6 +185,3 @@
 
 (main *argv*)
 			  
-
-;(setq *read-base* *tmp-read-base*)
-;(setq *print-base* *read-base*)

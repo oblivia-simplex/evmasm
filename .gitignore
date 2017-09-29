@@ -1,4 +1,4 @@
 *~
 \#*
 *.swp
-tests/
+tests/*.out
