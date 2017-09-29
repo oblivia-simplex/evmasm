@@ -24,8 +24,10 @@ in this way should not be more than 32 bytes long.
 
 Generic PUSH operations are supported, without an explicit length
 suffix. If no length suffix is given, it will be calculated as
+
   (1) `(min 32 (ash (ceiling (log ARGUMENT 2)) -3))`
 if the argument is an integer, or
+
   (2) `(min 32 (length ARGUMENT))`
 if the argument is a string.
 
