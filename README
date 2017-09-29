@@ -15,4 +15,12 @@ of Common Lisp.
 Numerical literals are base-10, by default. Prefix with '#x' for
 hexadecimal.
 
+Literal strings may be used as arguments to the PUSH operations.
+They will be converted to bytes, via ASCII encoding.
 
+
+Usage: evmasm.lisp <src> [-o out] [-d|-a]
+Options:
+-o <out>  designate output path
+-d        disassemble
+-a        assemble [default]
