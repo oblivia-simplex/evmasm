@@ -10,7 +10,7 @@ or
 blockhash
 push2 :some_label
 push8 #xfeedfacecafebabe
-push4 "helo"
+push "hello, world"
 return
 stop
 
