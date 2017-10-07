@@ -8,7 +8,15 @@
 ```
 
 The contents of the assembly source file should be enclosed in
-parentheses.
+parentheses, like so:
+
+```
+(
+  push #xdeadbeef
+  push #x01
+  add
+)
+```
 
 Comments may be included, and must be prefixed with semicolons.
 

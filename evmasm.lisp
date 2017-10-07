@@ -1,5 +1,9 @@
 #! /usr/bin/clisp
 
+(defpackage :evm-asm
+  (:use :cl))
+
+(in-package :evm-asm)
 
 (defun into-bytes (word size)
   (if (stringp word)
@@ -146,6 +150,9 @@
 		       (length arg)
 		       (how-many-bytes arg))))))
 
+
+
+
 ;; bit sloppy. refactor
 (defun label-pass (code)
   (let ((byte-counter 0)
@@ -231,7 +238,10 @@
 
 (defun assemble-from-file (path)
   (with-open-file (s path :direction :input)
-    (assemble (read s :eof-error nil))))
+    (let ((data (make-string (file-length s))))
+      (read-sequence data s)
+      ;; any preprocessing can happen in here. 
+      (assemble (read-from-string data nil)))))
 
 (defun read-bytes (path)
   (let ((bytes ()))
@@ -333,7 +343,7 @@
   #+sbcl
   sb-ext:*posix-argv*
   #+clisp
-  (cons "evmasm.lisp" *args*)
+  (cons "evmasm.lisp" ext:*args*)
   #+ccl
   ccl:*command-line-argument-list*)
 
