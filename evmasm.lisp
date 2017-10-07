@@ -1,4 +1,4 @@
-#! /usr/bin/clisp
+#! /usr/bin/env clisp
 
 (defpackage :evm-asm
   (:use :cl))
