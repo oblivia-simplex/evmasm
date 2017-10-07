@@ -25,7 +25,7 @@ parentheses, like so:
 Comments may be included, and must be prefixed with semicolons.
 
 This script should work fine with CLISP, SBCL, or CCL implementations
-of Common Lisp.
+of Common Lisp. You'll just need to change the shebang line.
 
 Numerical literals are base-10, by default. Prefix with '#x' for
 hexadecimal.
