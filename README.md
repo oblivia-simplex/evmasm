@@ -12,9 +12,13 @@ parentheses, like so:
 
 ```
 (
-  push #xdeadbeef
-  push #x01
-  add
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Comments work pretty much the same way they do in Lisp.  ;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  
+  push #xdeadbeef ;; EVMASM provides an implicitly-typed push instruction
+  push1 #x01      ;; But you can use explict typing if you like.
+  add             ;; Everything is cast into 256bit ints on the stack.
 )
 ```
 
